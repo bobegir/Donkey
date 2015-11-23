@@ -56,23 +56,25 @@ def execute(key):
 def check_cache(key, freshness = 30):
 	'''takes a request for data, serialises it,
 		then checks if that key exists in the cache'''
+	freshness = int(freshness)
 	s_key = mk_key(key)
 	try:
 		val = rd_conn.hgetall('cache:%s' % s_key)
 	except:
 		warnings.warn('Cannot communicate with Redis Cache!', Warning)
-	if val == {} or float(val['ts']) < time() - float(freshness*86400):
+	if val == {} or freshness ==0 or float(val['ts']) < time() - float(freshness*86400):
 		#couldn't find it, or not fresh, so make it!
 		try:
 			ret = execute(key)
 		except Exception as err:
 			raise Exception(['grabber failed with traceback:',format_exc()])
-		cache_insert(s_key, ret)
 	else:
 		ret = comp(val['val'],True)
+	cache_insert(s_key, ret)	
 	return ret
 
 def request(req):
+	print req
 	freshness = req.pop('@freshness', 30)
 	resp = check_cache(req,freshness)
 	return resp
